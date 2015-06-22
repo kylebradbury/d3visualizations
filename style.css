@@ -19,3 +19,8 @@
   stroke-linecap: round;
   pointer-events: none;
 }
+
+#title {
+  font-family: sans-serif;
+  -webkit-user-select: none ;
+}
