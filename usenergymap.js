@@ -214,7 +214,14 @@ function clickOut() {
 }
 
 function switchVisibility(d,i) {
+  var selection = g.selectAll("circle")
+                   .filter(function(data,index) {
+                      return data.fuel === categories[i] ;
+                   }) ;
   if (d3.select(this).attr("isVisible") === "true") {
+    selection.attr("visibility","hidden") ;
+
+    // Fade the button
     d3.select(this)
       .attr("fill", function() {
         return d3Colors(categoryColors[i] + 1) ;
@@ -222,6 +229,9 @@ function switchVisibility(d,i) {
       .attr("isVisible",false) ;
 
   } else {
+    selection.attr("visibility","visible") ;
+
+    // Darken the button
     d3.select(this)
       .attr("fill", function() {
         return d3Colors(categoryColors[i]) ;
