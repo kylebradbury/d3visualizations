@@ -42,22 +42,29 @@ categories = [  "BIOMASS",
                 "OTHER",
                 "SOLAR",
                 "WIND" ] ;
-categoryColors = ["green",
-                  "brown",
-                  "orange",
-                  "purple",
-                  "blue",
-                  "red",
-                  "black",
-                  "grey",
-                  "yellow",
-                  "cornflowerblue"] ;
+d3Colors = d3.scale.category20()
+              .domain(d3.range(1,21)) ;
+categoryColors = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] ;
+// categoryColors = [1,2,3,4,5,6,7,8,9,10] ;
+// categoryColors = ["green",
+//                   "brown",
+//                   "orange",
+//                   "purple",
+//                   "blue",
+//                   "red",
+//                   "black",
+//                   "grey",
+//                   "yellow",
+//                   "cornflowerblue"] ;
+
 categoryLabels = [ "bio", "coal", "gas", "geo", "hydro", "nuc", "oil", "other", "solar", "wind"] ;
-categoryLabelColors = ["white","white","white","white","white","white","white","white","black","white"] ;
+
+categoryLabelColors = ["white","white","white","white","white","white","white","white","white","white"] ;
 gLegend.status = [true, true, true, true, true, true, true, true, true, true] ;
 
 // Create zoom button
 gLegend.append("circle")
+  .classed("zoom",true)
   .attr("cx", dEdge)
   .attr("cy", dEdge)
   .attr('r', radius)
@@ -79,7 +86,7 @@ gLegend.append("text")
   .text("zoom");
 
 // Create other legend buttons
-legendButtons = gLegend.selectAll("circle")
+legendButtons = gLegend.selectAll("circle.dataSwitch")
         .data(categories)
         .enter() ;
 legendButtons.append("circle")
@@ -90,10 +97,11 @@ legendButtons.append("circle")
         })
         .attr('r', radius)
         .attr("fill", function(d,i) {
-          return categoryColors[i] ;
+          return d3Colors(categoryColors[i]) ;
         })
         .attr("stroke", "black")
         .attr("stroke-width", 1.5)
+        .attr("isVisible",true)
         .on("click", switchVisibility) ;
 legendButtons.append("text")
         .attr({ x:dEdge,
@@ -122,6 +130,7 @@ d3.json("./us.json", function(error, us) {
       .data(topojson.feature(us, us.objects.states).features)
     .enter().append("path")
       .attr("d", path)
+      .attr('fill', '#E6E6E6')
       .on("dblclick", clicked);
 
   g.append("path")
@@ -158,7 +167,7 @@ d3.json("./us.json", function(error, us) {
       })
       .style("fill", function(d) { // Can simplify this by using a list
         var colorIndex = categories.indexOf(d.fuel) ;
-        return categoryColors[colorIndex] ;
+        return d3Colors(categoryColors[colorIndex]) ;
       })
       .style("opacity", 0.75)
       .style("pointer-events", "none") ;
@@ -205,7 +214,18 @@ function clickOut() {
 }
 
 function switchVisibility(d,i) {
-  d3.select(this)
-    .attr("fill", "white") ;
-  //this.style("visibility", "hidden") ;
+  if (d3.select(this).attr("isVisible") === "true") {
+    d3.select(this)
+      .attr("fill", function() {
+        return d3Colors(categoryColors[i] + 1) ;
+      })
+      .attr("isVisible",false) ;
+
+  } else {
+    d3.select(this)
+      .attr("fill", function() {
+        return d3Colors(categoryColors[i]) ;
+    })
+    .attr("isVisible",true ) ;
+  }
 }
