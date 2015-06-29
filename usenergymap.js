@@ -11,11 +11,6 @@ var projection = d3.geo.albersUsa()
     .scale(1070)
     .translate([width / 2, height / 2]);
 
-// Setup drag functionality
-var drag = d3.behavior.drag()
-    .origin(function(d) { return d; })
-    .on("drag", dragmove);
-
 var capacityScale = d3.scale.linear() ;
 var energyScale = d3.scale.linear() ;
 
@@ -55,24 +50,11 @@ categories = [  "BIOMASS",
 d3Colors = d3.scale.category20()
               .domain(d3.range(1,21)) ;
 categoryColors = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] ;
-// categoryColors = [1,2,3,4,5,6,7,8,9,10] ;
-// categoryColors = ["green",
-//                   "brown",
-//                   "orange",
-//                   "purple",
-//                   "blue",
-//                   "red",
-//                   "black",
-//                   "grey",
-//                   "yellow",
-//                   "cornflowerblue"] ;
-
 categoryLabels = [ "bio", "coal", "gas", "geo", "hydro", "nuc", "oil", "other", "solar", "wind"] ;
-
 categoryLabelColors = ["white","white","white","white","white","white","white","white","white","white"] ;
 gLegend.status = [true, true, true, true, true, true, true, true, true, true] ;
 
-// Create zoom button
+// Button to zoom
 gLegend.append("circle")
   .classed("zoom",true)
   .attr("cx", dEdge)
@@ -95,7 +77,7 @@ gLegend.append("text")
   .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
   .text("zoom");
 
-// Create switch button
+// Button to switch to Energy filter
 gLegend.append("circle")
   .classed("zoom",true)
   .attr("cx", 2.5*dEdge)
@@ -119,7 +101,7 @@ gLegend.append("text")
   .text("energy");
 
 
-// Create switch button
+// Button to switch to Capacity filter
 gLegend.append("circle")
   .classed("zoom",true)
   .attr("cx", 2.5*dEdge)
@@ -142,7 +124,7 @@ gLegend.append("text")
   .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
   .text("cap");
 
-// Create other legend buttons
+// Legend buttons
 legendButtons = gLegend.selectAll("circle.dataSwitch")
         .data(categories)
         .enter() ;
@@ -178,9 +160,12 @@ legendButtons.append("text")
     return categoryLabels[i] ;
   });
 
+
+// Load data
 d3.json("./us.json", function(error, us) {
   if (error) throw error;
 
+  // Create states
   g.append("g")
     .attr("id", "states")
     .selectAll("path")
@@ -190,34 +175,38 @@ d3.json("./us.json", function(error, us) {
     .attr('fill', '#E6E6E6')
     .on("dblclick", clicked);
 
+  // Add state borders
   g.append("path")
       .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
       .attr("id", "state-borders")
       .attr("d", path);
 
-
+  // Load eGrid data
   d3.csv("egrid2010_plotData.csv", function(data) {
     // Draw each of the circles according to the nameplate capacity
     //  and color by the type of generation
     
     dataSet = data ;
 
-    // Determine the maximum value of the data
+    // Determine the maximum value of the nameplate data
     maxValNameplate = data.reduce(function(previousValue, currentValue) {
       return Math.max(previousValue, currentValue.nameplate) ;
     }, 0);
 
+    // Determine the maximum value of the energy generation data 
     maxValEnergy = data.reduce(function(previousValue, currentValue) {
       return Math.max(previousValue, currentValue.generation) ;
     }, 0);
 
-    // Estabish a scale for plotting
+    // Estabish a scale for plotting nameplate capacity
     capacityScale.domain([0,maxValNameplate])
      .range([0.5, 10]);
 
+    // Estabish a scale for plotting energy capacity
     energyScale.domain([0,maxValEnergy])
      .range([0.5, 10]);
 
+    // Draw a circle for each generator
     g.selectAll("circle")
       .data(data)
       .enter()
@@ -230,29 +219,23 @@ d3.json("./us.json", function(error, us) {
       })
       .attr("r", function(d) {
         return capacityScale(d.nameplate) ;
-        // return 2;
       })
-      .style("fill", function(d) { // Can simplify this by using a list
+      .style("fill", function(d) {
         var colorIndex = categories.indexOf(d.fuel) ;
         return d3Colors(categoryColors[colorIndex]) ;
       })
       .style("opacity", 0.75)
       .style("pointer-events", "none") ;
-  })
-  .on("progress", function(event){
-        //update progress bar
-        if (d3.event.lengthComputable) {
-          var percentComplete = Math.round(d3.event.loaded * 100 / d3.event.total);
-          console.log(percentComplete);
-       }
-    });
+  });
 });
 
-g.call(drag) ;
+//--------------------------------------------------
+// Helper Functions
+//--------------------------------------------------
 
+// Click function for zooming in on double clicked area
 function clicked(d) {
   var x, y;
-
   var mousePos = d3.mouse(this) ;
 
   if (d) {
@@ -266,6 +249,7 @@ function clicked(d) {
     scaleFactor = 1 ;
   }
 
+  // This is for coloring the clicked states
   g.selectAll("path")
     .classed("active", centered && function(d) { return d === centered; });
 
@@ -275,31 +259,7 @@ function clicked(d) {
     .style("stroke-width", 1.25 / scaleFactor + "px");
 }
 
-function move(d) {
-  var x, y;
-
-  var mousePos = d3.mouse(this) ;
-
-  if (d) {
-    x = mousePos[0] ;
-    y = mousePos[1] ;
-    scaleFactor *= 2 ;
-    scaleFactor = Math.min(scaleFactor,32) ;
-  } else {
-    x = width / 2;
-    y = height / 2;
-    scaleFactor = 1 ;
-  }
-
-  g.selectAll("path")
-    .classed("active", centered && function(d) { return d === centered; });
-
-  g.transition()
-    .duration(750)
-    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + scaleFactor + ")translate(" + -x + "," + -y + ")")
-    .style("stroke-width", 1.25 / scaleFactor + "px");
-}
-
+// Zoom out to the original view
 function clickOut() {
   var x, y;
 
@@ -313,6 +273,7 @@ function clickOut() {
     .style("stroke-width", 1.5 / scaleFactor + "px");
 }
 
+// Switch the visibility of generators based on side buttons
 function switchVisibility(d,i) {
   var selection = g.selectAll("circle")
                    .filter(function(data,index) {
@@ -340,7 +301,8 @@ function switchVisibility(d,i) {
   }
 }
 
-function changeDataSourceEnergy() {
+// Change the source of data to Energy
+function changeDataSourceEnergy(type) {
   g.selectAll("circle")
     .data(dataSet)
     .transition()
@@ -362,6 +324,7 @@ function changeDataSourceEnergy() {
     .style("pointer-events", "none") ;
 }
 
+// Change the data source to capacity
 function changeDataSourceCapacity() {
   g.selectAll("circle")
     .data(dataSet)
@@ -382,11 +345,4 @@ function changeDataSourceCapacity() {
     })
     .style("opacity", 0.75)
     .style("pointer-events", "none") ;
-}
-
-function dragmove(d) {
-  console.log("HERE!") ;
-  d3.select(this)
-      .attr("cx", d.x = Math.max(radius, Math.min(width - radius, d3.event.x)))
-      .attr("cy", d.y = Math.max(radius, Math.min(height - radius, d3.event.y)));
 }
