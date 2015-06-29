@@ -1,13 +1,23 @@
 var width = 960,
     height = 500,
     scaleFactor = 1,
-    centered;
+    centered,
+    maxValNameplate = [],
+    maxValEnergy = [];
+
+var dataSet = [] ;
 
 var projection = d3.geo.albersUsa()
     .scale(1070)
     .translate([width / 2, height / 2]);
 
+// Setup drag functionality
+var drag = d3.behavior.drag()
+    .origin(function(d) { return d; })
+    .on("drag", dragmove);
+
 var capacityScale = d3.scale.linear() ;
+var energyScale = d3.scale.linear() ;
 
 var path = d3.geo.path()
     .projection(projection);
@@ -85,6 +95,53 @@ gLegend.append("text")
   .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
   .text("zoom");
 
+// Create switch button
+gLegend.append("circle")
+  .classed("zoom",true)
+  .attr("cx", 2.5*dEdge)
+  .attr("cy", dEdge)
+  .attr('r', radius)
+  .attr("fill", 'white')
+  .attr("stroke", "black")
+  .attr("stroke-width", 1.5)
+  .on("click",changeDataSourceEnergy);
+
+gLegend.append("text")
+  .attr({ x:2.5*dEdge,
+          y:dEdge,
+          "font-size":8,
+          "font-family":"Verdana",
+          "text-anchor":"middle",
+          fill:"grey",
+          "alignment-baseline":"middle"})
+  .style('pointer-events', 'none')
+  .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
+  .text("energy");
+
+
+// Create switch button
+gLegend.append("circle")
+  .classed("zoom",true)
+  .attr("cx", 2.5*dEdge)
+  .attr("cy", (2*radius + 3)*2)
+  .attr('r', radius)
+  .attr("fill", 'white')
+  .attr("stroke", "black")
+  .attr("stroke-width", 1.5)
+  .on("click",changeDataSourceCapacity);
+
+gLegend.append("text")
+  .attr({ x:2.5*dEdge,
+          y:(2*radius + 3)*2,
+          "font-size":8,
+          "font-family":"Verdana",
+          "text-anchor":"middle",
+          fill:"grey",
+          "alignment-baseline":"middle"})
+  .style('pointer-events', 'none')
+  .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
+  .text("cap");
+
 // Create other legend buttons
 legendButtons = gLegend.selectAll("circle.dataSwitch")
         .data(categories)
@@ -125,31 +182,41 @@ d3.json("./us.json", function(error, us) {
   if (error) throw error;
 
   g.append("g")
-      .attr("id", "states")
+    .attr("id", "states")
     .selectAll("path")
-      .data(topojson.feature(us, us.objects.states).features)
+    .data(topojson.feature(us, us.objects.states).features)
     .enter().append("path")
-      .attr("d", path)
-      .attr('fill', '#E6E6E6')
-      .on("dblclick", clicked);
+    .attr("d", path)
+    .attr('fill', '#E6E6E6')
+    .on("dblclick", clicked);
 
   g.append("path")
       .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
       .attr("id", "state-borders")
       .attr("d", path);
 
+
   d3.csv("egrid2010_plotData.csv", function(data) {
     // Draw each of the circles according to the nameplate capacity
     //  and color by the type of generation
     
+    dataSet = data ;
+
     // Determine the maximum value of the data
-    var maxVal = data.reduce(function(previousValue, currentValue) {
+    maxValNameplate = data.reduce(function(previousValue, currentValue) {
       return Math.max(previousValue, currentValue.nameplate) ;
     }, 0);
 
+    maxValEnergy = data.reduce(function(previousValue, currentValue) {
+      return Math.max(previousValue, currentValue.generation) ;
+    }, 0);
+
     // Estabish a scale for plotting
-    capacityScale.domain([0,maxVal])
-     .range([0.75, 8]);
+    capacityScale.domain([0,maxValNameplate])
+     .range([0.5, 10]);
+
+    energyScale.domain([0,maxValEnergy])
+     .range([0.5, 10]);
 
     g.selectAll("circle")
       .data(data)
@@ -171,8 +238,17 @@ d3.json("./us.json", function(error, us) {
       })
       .style("opacity", 0.75)
       .style("pointer-events", "none") ;
-  });
+  })
+  .on("progress", function(event){
+        //update progress bar
+        if (d3.event.lengthComputable) {
+          var percentComplete = Math.round(d3.event.loaded * 100 / d3.event.total);
+          console.log(percentComplete);
+       }
+    });
 });
+
+g.call(drag) ;
 
 function clicked(d) {
   var x, y;
@@ -199,6 +275,30 @@ function clicked(d) {
     .style("stroke-width", 1.25 / scaleFactor + "px");
 }
 
+function move(d) {
+  var x, y;
+
+  var mousePos = d3.mouse(this) ;
+
+  if (d) {
+    x = mousePos[0] ;
+    y = mousePos[1] ;
+    scaleFactor *= 2 ;
+    scaleFactor = Math.min(scaleFactor,32) ;
+  } else {
+    x = width / 2;
+    y = height / 2;
+    scaleFactor = 1 ;
+  }
+
+  g.selectAll("path")
+    .classed("active", centered && function(d) { return d === centered; });
+
+  g.transition()
+    .duration(750)
+    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + scaleFactor + ")translate(" + -x + "," + -y + ")")
+    .style("stroke-width", 1.25 / scaleFactor + "px");
+}
 
 function clickOut() {
   var x, y;
@@ -238,4 +338,55 @@ function switchVisibility(d,i) {
     })
     .attr("isVisible",true ) ;
   }
+}
+
+function changeDataSourceEnergy() {
+  g.selectAll("circle")
+    .data(dataSet)
+    .transition()
+    .duration(1000)
+    .attr("cx", function(d) {
+      return projection([d.lon, d.lat])[0];
+    })
+    .attr("cy", function(d) {
+      return projection([d.lon, d.lat])[1];
+    })
+    .attr("r", function(d) {
+      return energyScale(d.generation) ;
+    })
+    .style("fill", function(d) {
+      var colorIndex = categories.indexOf(d.fuel) ;
+      return d3Colors(categoryColors[colorIndex]) ;
+    })
+    .style("opacity", 0.75)
+    .style("pointer-events", "none") ;
+}
+
+function changeDataSourceCapacity() {
+  g.selectAll("circle")
+    .data(dataSet)
+    .transition()
+    .duration(1000)
+    .attr("cx", function(d) {
+      return projection([d.lon, d.lat])[0];
+    })
+    .attr("cy", function(d) {
+      return projection([d.lon, d.lat])[1];
+    })
+    .attr("r", function(d) {
+      return capacityScale(d.nameplate) ;
+    })
+    .style("fill", function(d) {
+      var colorIndex = categories.indexOf(d.fuel) ;
+      return d3Colors(categoryColors[colorIndex]) ;
+    })
+    .style("opacity", 0.75)
+    .style("pointer-events", "none") ;
+}
+
+function dragmove(d) {
+  console.log("HERE!") ;
+  d3.select(this)
+      .attr("cx", d.x = Math.max(radius, Math.min(width - radius, d3.event.x)))
+      .attr("cy", d.y = Math.max(radius, Math.min(height - radius, d3.event.y)));
 }
