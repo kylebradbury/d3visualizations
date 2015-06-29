@@ -1,22 +1,26 @@
+// Main SVG Variables
 var width = 960,
     height = 500,
     scaleFactor = 1,
-    centered,
-    maxValNameplate = [],
-    maxValEnergy = [];
+    centered ;
 
-var dataSet = [] ;
+// Data variables
+var dataSet = [],
+    maxValue = {},
+    currentDataType = "capacity";
 
+// Geo-mapping info
 var projection = d3.geo.albersUsa()
     .scale(1070)
     .translate([width / 2, height / 2]);
 
-var capacityScale = d3.scale.linear() ;
-var energyScale = d3.scale.linear() ;
-
 var path = d3.geo.path()
     .projection(projection);
 
+// Scales
+var circleScale = d3.scale.linear() ;
+
+// SVG Canvas
 var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
@@ -27,11 +31,13 @@ svg.append("rect")
     .attr("height", height)
     .on("click", clicked);
 
+// Main group
 var g = svg.append("g");
 
-// Create the legend
+// Create the legend group
 var gLegend = svg.append("g");
 
+// Legend variables
 var dEdge = 25 ;
 var radius = 15 ;
 
@@ -53,6 +59,41 @@ categoryColors = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] ;
 categoryLabels = [ "bio", "coal", "gas", "geo", "hydro", "nuc", "oil", "other", "solar", "wind"] ;
 categoryLabelColors = ["white","white","white","white","white","white","white","white","white","white"] ;
 gLegend.status = [true, true, true, true, true, true, true, true, true, true] ;
+
+infoType = ["energy", "capacity","capacityfactor", "age", "emissions", "emissionsrate"] ;
+infoTypeShort = ["energy", "cap", "capfac", "age", "co2e", "co2eR"] ;
+
+// Buttons to select information type
+legendInfoButtons = gLegend.selectAll("circle.infoSwitch")
+        .data(infoType)
+        .enter() ;
+legendInfoButtons.append("circle")
+  .attr("cx", 2.5*dEdge)
+  .attr("cy", function(d,i) {
+          return dEdge + (2*radius + 3)*(i + 1) ;
+        })
+  .attr('r', radius)
+  .attr("fill", 'white')
+  .attr("stroke", "black")
+  .attr("stroke-width", 1.5)
+  .on("click",function(d) {
+    return changeDataSource(d);
+  });
+legendInfoButtons.append("text")
+  .attr({ x:2.5*dEdge,
+            y:function(d,i) {
+              return dEdge + (2*radius + 3)*(i + 1) ;
+            },
+            "font-size":8,
+            "font-family":"Verdana",
+            "text-anchor":"middle",
+            fill: "grey",
+            "alignment-baseline":"middle"})
+    .style('pointer-events', 'none')
+    .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
+    .text(function(d,i) {
+      return infoTypeShort[i] ;
+    });
 
 // Button to zoom
 gLegend.append("circle")
@@ -77,64 +118,11 @@ gLegend.append("text")
   .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
   .text("zoom");
 
-// Button to switch to Energy filter
-gLegend.append("circle")
-  .classed("zoom",true)
-  .attr("cx", 2.5*dEdge)
-  .attr("cy", dEdge)
-  .attr('r', radius)
-  .attr("fill", 'white')
-  .attr("stroke", "black")
-  .attr("stroke-width", 1.5)
-  .on("click",function() {
-    return changeDataSource("energy");
-  });
-  // .on("click",changeDataSourceEnergy);
-
-gLegend.append("text")
-  .attr({ x:2.5*dEdge,
-          y:dEdge,
-          "font-size":8,
-          "font-family":"Verdana",
-          "text-anchor":"middle",
-          fill:"grey",
-          "alignment-baseline":"middle"})
-  .style('pointer-events', 'none')
-  .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
-  .text("energy");
-
-
-// Button to switch to Capacity filter
-gLegend.append("circle")
-  .classed("zoom",true)
-  .attr("cx", 2.5*dEdge)
-  .attr("cy", (2*radius + 3)*2)
-  .attr('r', radius)
-  .attr("fill", 'white')
-  .attr("stroke", "black")
-  .attr("stroke-width", 1.5)
-  .on("click",function() {
-    return changeDataSource("capacity");
-  });
-  // .on("click",changeDataSourceCapacity);
-
-gLegend.append("text")
-  .attr({ x:2.5*dEdge,
-          y:(2*radius + 3)*2,
-          "font-size":8,
-          "font-family":"Verdana",
-          "text-anchor":"middle",
-          fill:"grey",
-          "alignment-baseline":"middle"})
-  .style('pointer-events', 'none')
-  .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
-  .text("cap");
-
-// Legend buttons
-legendButtons = gLegend.selectAll("circle.dataSwitch")
+// Legend data buttons
+legendDataButtons = gLegend.selectAll("circle.dataSwitch")
         .data(categories)
         .enter() ;
-legendButtons.append("circle")
+legendDataButtons.append("circle")
         .classed("dataSwitch", true)
         .attr("cx", dEdge)
         .attr("cy", function(d,i) {
@@ -148,7 +136,7 @@ legendButtons.append("circle")
         .attr("stroke-width", 1.5)
         .attr("isVisible",true)
         .on("click", switchVisibility) ;
-legendButtons.append("text")
+legendDataButtons.append("text")
         .attr({ x:dEdge,
           y:function(d,i) {
             return dEdge + (2*radius + 3)*(i + 1) ;
@@ -189,29 +177,37 @@ d3.json("./us.json", function(error, us) {
       .attr("d", path);
 
   // Load eGrid data
-  d3.csv("egrid2010_plotData.csv", function(data) {
+  d3.csv("egrid2010_plotDatav2.csv", function(data) {
     // Draw each of the circles according to the nameplate capacity
     //  and color by the type of generation
     
     dataSet = data ;
 
-    // Determine the maximum value of the nameplate data
-    maxValNameplate = data.reduce(function(previousValue, currentValue) {
-      return Math.max(previousValue, currentValue.nameplate) ;
-    }, 0);
-
-    // Determine the maximum value of the energy generation data 
-    maxValEnergy = data.reduce(function(previousValue, currentValue) {
-      return Math.max(previousValue, currentValue.generation) ;
-    }, 0);
+    // Get the maximum value for each of the scales
+    maxValue = {
+      capacity: data.reduce(function(previousValue, currentValue) {
+        return Math.max(previousValue, currentValue.nameplate) ;
+      }, 0),
+      energy: data.reduce(function(previousValue, currentValue) {
+        return Math.max(previousValue, currentValue.generation) ;
+      }, 0),
+      capacityfactor: data.reduce(function(previousValue, currentValue) {
+        return Math.max(previousValue, currentValue.capacityfactor) ;
+      }, 0),
+      age: data.reduce(function(previousValue, currentValue) {
+        return Math.max(previousValue, currentValue.age) ;
+      }, 0),
+      emissions: data.reduce(function(previousValue, currentValue) {
+        return Math.max(previousValue, currentValue.co2emissions) ;
+      }, 0),
+      emissionsrate: data.reduce(function(previousValue, currentValue) {
+        return Math.max(previousValue, currentValue.co2emissionsRate) ;
+      }, 0),
+    };
 
     // Estabish a scale for plotting nameplate capacity
-    capacityScale.domain([0,maxValNameplate])
-     .range([0.5, 10]);
-
-    // Estabish a scale for plotting energy capacity
-    energyScale.domain([0,maxValEnergy])
-     .range([0.5, 10]);
+    circleScale.domain([0,maxValue[currentDataType]])
+      .range([0.5, 10]);
 
     // Draw a circle for each generator
     g.selectAll("circle")
@@ -225,7 +221,7 @@ d3.json("./us.json", function(error, us) {
         return projection([d.lon, d.lat])[1];
       })
       .attr("r", function(d) {
-        return capacityScale(d.nameplate) ;
+        return circleScale(d.nameplate) ;
       })
       .style("fill", function(d) {
         var colorIndex = categories.indexOf(d.fuel) ;
@@ -311,6 +307,14 @@ function switchVisibility(d,i) {
 
 // Change the source of data 
 function changeDataSource(type) {
+  // Reset the scale
+  circleScale.domain([0,maxValue[type]])
+    .range([0.5, 10]);
+
+  var cData = [] ;
+  // Select the current generation data
+  
+
   g.selectAll("circle")
     .data(dataSet)
     .transition()
@@ -323,10 +327,18 @@ function changeDataSource(type) {
     })
     .attr("r", function(d) {
       switch(type) {
-        case "capacity":
-          return capacityScale(d.nameplate) ;
         case "energy":
-          return energyScale(d.generation) ;
+          return circleScale(d.generation) ;
+        case "capacity":
+          return circleScale(d.nameplate) ;
+        case "capacityfactor":
+          return circleScale(d.capacityfactor) ;
+        case "age":
+          return circleScale(d.age) ;
+        case "emissions":
+          return circleScale(d.co2emissions) ;
+        case "emissionsrate":
+          return circleScale(d.co2emissionsRate) ;
       }
     })
     .style("fill", function(d) {
