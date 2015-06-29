@@ -314,7 +314,7 @@ function changeDataSource(type) {
   g.selectAll("circle")
     .data(dataSet)
     .transition()
-    .duration(2000)
+    .duration(1000)
     .attr("cx", function(d) {
       return projection([d.lon, d.lat])[0];
     })
@@ -328,52 +328,6 @@ function changeDataSource(type) {
         case "energy":
           return energyScale(d.generation) ;
       }
-    })
-    .style("fill", function(d) {
-      var colorIndex = categories.indexOf(d.fuel) ;
-      return d3Colors(categoryColors[colorIndex]) ;
-    })
-    .style("opacity", 0.75)
-    .style("pointer-events", "none") ;
-}
-
-// Change the source of data to Energy
-function changeDataSourceEnergy() {
-  g.selectAll("circle")
-    .data(dataSet)
-    .transition()
-    .duration(1000)
-    .attr("cx", function(d) {
-      return projection([d.lon, d.lat])[0];
-    })
-    .attr("cy", function(d) {
-      return projection([d.lon, d.lat])[1];
-    })
-    .attr("r", function(d) {
-      return energyScale(d.generation) ;
-    })
-    .style("fill", function(d) {
-      var colorIndex = categories.indexOf(d.fuel) ;
-      return d3Colors(categoryColors[colorIndex]) ;
-    })
-    .style("opacity", 0.75)
-    .style("pointer-events", "none") ;
-}
-
-// Change the data source to capacity
-function changeDataSourceCapacity() {
-  g.selectAll("circle")
-    .data(dataSet)
-    .transition()
-    .duration(1000)
-    .attr("cx", function(d) {
-      return projection([d.lon, d.lat])[0];
-    })
-    .attr("cy", function(d) {
-      return projection([d.lon, d.lat])[1];
-    })
-    .attr("r", function(d) {
-      return capacityScale(d.nameplate) ;
     })
     .style("fill", function(d) {
       var colorIndex = categories.indexOf(d.fuel) ;
