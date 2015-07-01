@@ -2,6 +2,7 @@
 var width = 960,
     height = 500,
     scaleFactor = 1,
+    dataRange = [0, 15],
     centered ;
 
 // Data variables
@@ -18,7 +19,9 @@ var path = d3.geo.path()
     .projection(projection);
 
 // Scales
-var circleScale = d3.scale.linear() ;
+var circleScale = d3.scale
+                    .sqrt()
+                    .clamp(true) ;
 
 // SVG Canvas
 var svg = d3.select("body").append("svg")
@@ -60,26 +63,34 @@ categoryLabels = [ "bio", "coal", "gas", "geo", "hydro", "nuc", "oil", "other", 
 categoryLabelColors = ["white","white","white","white","white","white","white","white","white","white"] ;
 gLegend.status = [true, true, true, true, true, true, true, true, true, true] ;
 
-infoType = ["energy", "capacity","capacityfactor", "age", "emissions", "emissionsrate"] ;
-infoTypeShort = ["energy", "cap", "capfac", "age", "co2e", "co2eR"] ;
+infoType = ["capacity", "energy", "capacityfactor", "age", "emissions", "emissionsrate"] ;
+infoTypeShort = ["cap", "energy", "c.f.", "age", "co2e", "co2/MW"] ;
 
 // Buttons to select information type
 legendInfoButtons = gLegend.selectAll("circle.infoSwitch")
         .data(infoType)
         .enter() ;
 legendInfoButtons.append("circle")
+  .classed("infoSwitch",true)
   .attr("cx", 2.5*dEdge)
   .attr("cy", function(d,i) {
           return dEdge + (2*radius + 3)*(i + 1) ;
         })
   .attr('r', radius)
-  .attr("fill", 'white')
+  .attr("fill", function(d,i) {
+    if (d == "capacity") {
+      return "black" ;
+    } else {
+      return "white" ;
+    }
+  })
   .attr("stroke", "black")
   .attr("stroke-width", 1.5)
   .on("click",function(d) {
-    return changeDataSource(d);
+    return changeDataSource(d,this);
   });
 legendInfoButtons.append("text")
+  .classed("infoSwitch",true)
   .attr({ x:2.5*dEdge,
             y:function(d,i) {
               return dEdge + (2*radius + 3)*(i + 1) ;
@@ -201,13 +212,14 @@ d3.json("./us.json", function(error, us) {
         return Math.max(previousValue, currentValue.co2emissions) ;
       }, 0),
       emissionsrate: data.reduce(function(previousValue, currentValue) {
-        return Math.max(previousValue, currentValue.co2emissionsRate) ;
+        return 20000 ;
+        // return Math.max(previousValue, currentValue.co2emissionsRate) ;
       }, 0),
     };
 
     // Estabish a scale for plotting nameplate capacity
     circleScale.domain([0,maxValue[currentDataType]])
-      .range([0.5, 10]);
+      .range(dataRange);
 
     // Draw a circle for each generator
     g.selectAll("circle")
@@ -227,8 +239,9 @@ d3.json("./us.json", function(error, us) {
         var colorIndex = categories.indexOf(d.fuel) ;
         return d3Colors(categoryColors[colorIndex]) ;
       })
-      .style("opacity", 0.75)
-      .style("pointer-events", "none") ;
+      .style("opacity", 0.75);
+      //.on("click",generateToolTip(d)) ;
+      //.style("pointer-events", "none") ;
   });
 });
 
@@ -306,15 +319,20 @@ function switchVisibility(d,i) {
 
 
 // Change the source of data 
-function changeDataSource(type) {
+function changeDataSource(type, circle) {
   // Reset the scale
   circleScale.domain([0,maxValue[type]])
-    .range([0.5, 10]);
-
-  var cData = [] ;
-  // Select the current generation data
+    .range(dataRange);
   
+  // Change the fill of all circles to white
+  gLegend.selectAll("circle.infoSwitch")
+    .attr("fill", "white") ;
 
+  // Change the fill of the selected circle to black
+  d3.select(circle)
+    .attr('fill', 'black') ;
+
+  var xx ;
   g.selectAll("circle")
     .data(dataSet)
     .transition()
@@ -347,4 +365,9 @@ function changeDataSource(type) {
     })
     .style("opacity", 0.75)
     .style("pointer-events", "none") ;
+}
+
+
+function generateToolTip(data) {
+
 }
