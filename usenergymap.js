@@ -63,17 +63,9 @@ categoryLabels = [ "bio", "coal", "gas", "geo", "hydro", "nuc", "oil", "other", 
 categoryLabelColors = ["white","white","white","white","white","white","white","white","white","white"] ;
 gLegend.status = [true, true, true, true, true, true, true, true, true, true] ;
 
-infoType = ["capacity", "energy", "capacityfactor", "age", "emissions", "emissionsrate"] ;
-infoTypeShort = ["cap", "energy", "c.f.", "age", "co2e", "co2/MW"] ;
+infoType = ["capacity", "energy", "emissions", "age"] ;
+infoTypeShort = ["cap", "energy", "co2e", "age"] ;
 
-// Tooltip Data
-// var tooltipData = [ "Plant Name      = " + d.name,
-//                       "Capacity        = " + d.name plate,
-//                       "Annual Energy   = " + d.generation,
-//                       "Primary Fuel    = " + d.fuel,
-//                       "Average Age     = " + d.age,
-//                       "Capacity Factor = " + d.capacityfactor,
-//                       "CO2e Emissions  = " + d.co2emissions] ;
 var tooltipData = [   "Plant Name      = ",
                       "Capacity        = ",
                       "Annual Energy   = ",
@@ -222,7 +214,7 @@ d3.json("./us.json", function(error, us) {
       capacityfactor: data.reduce(function(previousValue, currentValue) {
         return Math.max(previousValue, currentValue.capacityfactor) ;
       }, 0),
-      age: data.reduce(function(previousValue, currentValue) {
+      age: 5*data.reduce(function(previousValue, currentValue) {
         return Math.max(previousValue, currentValue.age) ;
       }, 0),
       emissions: data.reduce(function(previousValue, currentValue) {
