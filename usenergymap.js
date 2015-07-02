@@ -66,6 +66,23 @@ gLegend.status = [true, true, true, true, true, true, true, true, true, true] ;
 infoType = ["capacity", "energy", "capacityfactor", "age", "emissions", "emissionsrate"] ;
 infoTypeShort = ["cap", "energy", "c.f.", "age", "co2e", "co2/MW"] ;
 
+// Tooltip Data
+// var tooltipData = [ "Plant Name      = " + d.name,
+//                       "Capacity        = " + d.name plate,
+//                       "Annual Energy   = " + d.generation,
+//                       "Primary Fuel    = " + d.fuel,
+//                       "Average Age     = " + d.age,
+//                       "Capacity Factor = " + d.capacityfactor,
+//                       "CO2e Emissions  = " + d.co2emissions] ;
+var tooltipData = [   "Plant Name      = ",
+                      "Capacity        = ",
+                      "Annual Energy   = ",
+                      "Primary Fuel    = ",
+                      "Average Gen Age = ",
+                      "Capacity Factor = ",
+                      "CO2e Emissions  = "] ;
+generateToolTip(tooltipData) ;
+
 // Buttons to select information type
 legendInfoButtons = gLegend.selectAll("circle.infoSwitch")
         .data(infoType)
@@ -109,7 +126,7 @@ legendInfoButtons.append("text")
 // Button to zoom
 gLegend.append("circle")
   .classed("zoom",true)
-  .attr("cx", dEdge)
+  .attr("cx", 1.75*dEdge)
   .attr("cy", dEdge)
   .attr('r', radius)
   .attr("fill", 'white')
@@ -118,7 +135,7 @@ gLegend.append("circle")
   .on("click",clickOut);
 
 gLegend.append("text")
-  .attr({ x:dEdge,
+  .attr({ x:1.75*dEdge,
           y:dEdge,
           "font-size":8,
           "font-family":"Verdana",
@@ -239,8 +256,10 @@ d3.json("./us.json", function(error, us) {
         var colorIndex = categories.indexOf(d.fuel) ;
         return d3Colors(categoryColors[colorIndex]) ;
       })
-      .style("opacity", 0.75);
-      //.on("click",generateToolTip(d)) ;
+      .style("opacity", 0.75)
+      .on("click",function(d) {
+        return updateAndShowToolTip(d);})
+      .on("dblclick", clicked) ;
       //.style("pointer-events", "none") ;
   });
 });
@@ -326,23 +345,20 @@ function changeDataSource(type, circle) {
   
   // Change the fill of all circles to white
   gLegend.selectAll("circle.infoSwitch")
+    .transition()
+    .duration(1000)
     .attr("fill", "white") ;
 
   // Change the fill of the selected circle to black
   d3.select(circle)
+    .transition()
+    .duration(1000)
     .attr('fill', 'black') ;
 
-  var xx ;
   g.selectAll("circle")
     .data(dataSet)
     .transition()
     .duration(1000)
-    .attr("cx", function(d) {
-      return projection([d.lon, d.lat])[0];
-    })
-    .attr("cy", function(d) {
-      return projection([d.lon, d.lat])[1];
-    })
     .attr("r", function(d) {
       switch(type) {
         case "energy":
@@ -358,16 +374,63 @@ function changeDataSource(type, circle) {
         case "emissionsrate":
           return circleScale(d.co2emissionsRate) ;
       }
-    })
-    .style("fill", function(d) {
-      var colorIndex = categories.indexOf(d.fuel) ;
-      return d3Colors(categoryColors[colorIndex]) ;
-    })
-    .style("opacity", 0.75)
-    .style("pointer-events", "none") ;
+    }) ;
 }
 
+//defines a function to be used to append the title to the tooltip.  you can set how you want it to display here.
+function generateToolTip(dTooltip) {
+  svg.append("rect")
+      .classed("tooltip", true)
+      .attr({x: width/2 - 5,
+             y: 1 ,
+             width: 280 ,
+             height: 75 ,
+             fill: "white",
+             stroke: "grey",
+             "stroke-width": 1
+      })
+      .attr("visibility","hidden");
 
-function generateToolTip(data) {
+  svg.selectAll("text.tooltip")
+      .data(dTooltip)
+      .enter()
+      .append("text")
+      .classed("tooltip",true)
+      .attr({ x:width/2,
+              y:function(d,i){return i*10+10;},
+              "font-size":10,
+              "font-family":"Monaco",
+              "text-anchor":"left",
+              fill:"grey",
+              "alignment-baseline":"middle",
+              "xml:space": "preserve"})
+      .style('pointer-events', 'none')
+      .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
+      .text(function(d){return d;})
+      .attr("visibility","hidden" ) ;
+}
+
+var numformat = d3.format(".0f");
+var cfFormat  = d3.format(".3f");
+
+function updateAndShowToolTip (dTooltip) {
+
+  var cData = [ "Plant Name      = " + dTooltip.name,
+                "Capacity        = " + dTooltip.nameplate + " MW",
+                "Annual Energy   = " + numformat(dTooltip.generation/1000) + " GWh",
+                "Primary Fuel    = " + dTooltip.fuel,
+                "Average Gen Age = " + dTooltip.age + " years",
+                "Capacity Factor = " + cfFormat(dTooltip.capacityfactor),
+                "CO2e Emissions  = " + numformat(dTooltip.co2emissions/1000) + " thousand tons CO2e"] ;
+
+  svg.selectAll("rect.tooltip")
+      .attr("visibility","visible" );
+
+  svg.selectAll("text.tooltip")
+      .data(cData)
+      .text(function(d,i){
+        return cData[i];})
+      .attr("visibility","visible" ) ;
+
 
 }
