@@ -254,9 +254,27 @@ d3.json("./us.json", function(error, us) {
         var colorIndex = categories.indexOf(d.fuel) ;
         return d3Colors(categoryColors[colorIndex]) ;
       })
+      .attr("stroke","black")
+      .attr("stroke-width",0)
       .style("opacity", 0.75)
-      .on("click",function(d) {
-        return updateAndShowToolTip(d);})
+      .on("click",function(d) { // Change circle and add tooltip
+        console.log(d3.select(this).attr("stroke-width"));
+        if (d3.select(this).attr("stroke-width") == 0) {
+          // Set all circles to no stroke
+          g.selectAll("circle")
+            .attr("stroke-width", 0) ;
+          // Select the current circle
+          d3.select(this)
+            .attr("stroke-width", 2) ;
+          // Show the tooltip
+          updateAndShowToolTip(d);
+        } else {
+          d3.select(this)
+            .attr("stroke-width", 0) ;
+            hideToolTip(d);
+        }
+        
+      })
       .on("dblclick", clicked) ;
       //.style("pointer-events", "none") ;
   });
@@ -419,6 +437,7 @@ var cfFormat  = d3.format(".3f");
 
 function updateAndShowToolTip (dTooltip) {
 
+  // Update and show tooltip
   var cData = [ "Plant Name      = " + dTooltip.name,
                 "Capacity        = " + numformat(dTooltip.nameplate) + " MW",
                 "Annual Energy   = " + numformat(dTooltip.generation/1000) + " GWh",
@@ -435,6 +454,12 @@ function updateAndShowToolTip (dTooltip) {
       .text(function(d,i){
         return cData[i];})
       .attr("visibility","visible" ) ;
+}
 
+function hideToolTip(dTooltip) {
+  svg.selectAll("rect.tooltip")
+      .attr("visibility","hidden" );
 
+  svg.selectAll("text.tooltip")
+      .attr("visibility","hidden" ) ;
 }
