@@ -107,7 +107,13 @@ legendInfoButtons.append("text")
             "font-size":8,
             "font-family":"Verdana",
             "text-anchor":"middle",
-            fill: "grey",
+            fill: function(d,i) {
+              if (d == "capacity") {
+                return "white" ;
+              } else {
+                return "grey" ;
+              }
+            },
             "alignment-baseline":"middle"})
     .style('pointer-events', 'none')
     .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
@@ -335,17 +341,23 @@ function changeDataSource(type, circle) {
   circleScale.domain([0,maxValue[type]])
     .range(dataRange);
   
-  // Change the fill of all circles to white
+  // Change the fill of all circles to white and text to grey
   gLegend.selectAll("circle.infoSwitch")
-    .transition()
-    .duration(1000)
     .attr("fill", "white") ;
 
-  // Change the fill of the selected circle to black
+  gLegend.selectAll("text.infoSwitch")
+    .attr("fill", "grey") ;
+
+  // Change the fill of the selected circle to black and text to white
   d3.select(circle)
-    .transition()
-    .duration(1000)
     .attr('fill', 'black') ;
+
+  gLegend.selectAll("text.infoSwitch")
+    .each(function(d,i){
+      if (d == type) {
+        d3.select(this).attr('fill', 'white') ;
+      }
+    }) ;
 
   g.selectAll("circle")
     .data(dataSet)
@@ -402,13 +414,13 @@ function generateToolTip(dTooltip) {
       .attr("visibility","hidden" ) ;
 }
 
-var numformat = d3.format(".0f");
+var numformat = d3.format(",.0f");
 var cfFormat  = d3.format(".3f");
 
 function updateAndShowToolTip (dTooltip) {
 
   var cData = [ "Plant Name      = " + dTooltip.name,
-                "Capacity        = " + dTooltip.nameplate + " MW",
+                "Capacity        = " + numformat(dTooltip.nameplate) + " MW",
                 "Annual Energy   = " + numformat(dTooltip.generation/1000) + " GWh",
                 "Primary Fuel    = " + dTooltip.fuel,
                 "Average Gen Age = " + dTooltip.age + " years",
