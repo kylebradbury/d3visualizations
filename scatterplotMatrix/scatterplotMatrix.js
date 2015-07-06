@@ -64,7 +64,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   if (error) throw error;
   data = data.filter(function(d){
     //if (d.generation >= 296256) { // Limit data to 95% of generation
-    if (d.generation >= 4*296256) { // Limit data to 95% of generation
+    if (d.generation >= 296256) { // Limit data to 95% of generation
       return true ;
     } else {
       return false ;
@@ -274,6 +274,9 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   function brushmove(p) {
     var e = brush.extent();
     svg.selectAll("circle.data").classed("hidden", function(d) {
+
+      // INSERT SUBSELECTION CODE FOR HISTOGRAM HERE
+
       return +e[0][0] > +d[p.x] || +d[p.x] > +e[1][0]
           || +e[0][1] > +d[p.y] || +d[p.y] > +e[1][1];
     });
