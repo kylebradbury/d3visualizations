@@ -63,7 +63,8 @@ var radius = 15 ;
 d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   if (error) throw error;
   data = data.filter(function(d){
-    if (d.generation >= 296256) { // Limit data to 95% of generation
+    //if (d.generation >= 296256) { // Limit data to 95% of generation
+    if (d.generation >= 4*296256) { // Limit data to 95% of generation
       return true ;
     } else {
       return false ;
@@ -86,6 +87,14 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   // Set the ticks to stretch across all plots
   xAxis.tickSize(size * n);
   yAxis.tickSize(-size * n);  // negative so ticks go right
+
+  // Create brishing variable
+  var brush = d3.svg.brush()
+      .x(x)
+      .y(y)
+      .on("brushstart", brushstart)
+      .on("brush", brushmove)
+      .on("brushend", brushend);
 
   // Create the svg box
   var svg = d3.select("body").append("svg")
@@ -171,7 +180,8 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       .attr("dy", ".71em")
       .text(function(d) { return d.x; });
 
-
+  // Run the brush
+  cell.call(brush);
 
   function plot(p) {
     var cell = d3.select(this);
@@ -246,6 +256,32 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
     });
 
     var yy;
+  }
+
+  var brushCell;
+
+  // Clear the previously-active brush, if any.
+  function brushstart(p) {
+    if (brushCell !== this) {
+      d3.select(brushCell).call(brush.clear());
+      x.domain(domainByTrait[p.x]);
+      y.domain(domainByTrait[p.y]);
+      brushCell = this;
+    }
+  }
+
+  // Highlight the selected circles.
+  function brushmove(p) {
+    var e = brush.extent();
+    svg.selectAll("circle.data").classed("hidden", function(d) {
+      return +e[0][0] > +d[p.x] || +d[p.x] > +e[1][0]
+          || +e[0][1] > +d[p.y] || +d[p.y] > +e[1][1];
+    });
+  }
+
+  // If the brush is empty, select all circles.
+  function brushend() {
+    if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
   }
 
   function cross(a, b) {
