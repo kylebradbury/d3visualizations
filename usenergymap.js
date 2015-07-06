@@ -207,6 +207,14 @@ d3.json("./us.json", function(error, us) {
     // Draw each of the circles according to the nameplate capacity
     //  and color by the type of generation
     
+    // data = data.filter(function(d){
+    //   if (d.generation >= 296256) { // Limit data to 95% of generation
+    //     return true ;
+    //   } else {
+    //     return false ;
+    //   }
+    // });
+
     dataSet = data ;
 
     // Get the maximum value for each of the scales
