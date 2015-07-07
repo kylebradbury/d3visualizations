@@ -67,7 +67,8 @@ categoryState = {BIOMASS:true,
 var dEdge = -50 ;
 var radius = 15 ;
 
-
+var filterType = ["none","none"] ;
+var filterLimits = [[0,0],[0,0]] ;
 
 // Plot the data 
 d3.csv("egrid2010_scatterplot.csv", function(error, data) {
@@ -114,11 +115,14 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       .append("g")
       .attr("transform", "translate(" + padding*4 + "," + padding / 2 + ")");
 
+  //------------------------------------
+  // Create Legend
+  //------------------------------------
 
   // Create the legend group
   var gLegend = svg.append("g");
 
-  // Creat the lenend
+  // Creat the legend
   legendDataButtons = gLegend.selectAll("circle.dataSwitch")
         .data(categories)
         .enter() ;
@@ -161,7 +165,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
     .enter().append("g")
       .attr("class", "x axis")
       .attr("transform", function(d, i) { return "translate(" + (n - i - 1) * size + ",0)"; })
-      .each(function(d) { 
+      .each(function(d) {
         x.domain(domainByTrait[d]);
         d3.select(this).call(xAxis);
       });
@@ -171,7 +175,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       .data(traits)
     .enter().append("g")
       .attr("class", "y axis")
-      .attr("transform", function(d, i) { 
+      .attr("transform", function(d, i) {
         return "translate(0," + i * size + ")";
       })
       .each(function(d) {
@@ -202,6 +206,9 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   // Run the brush
   cell.call(brush);
 
+  //------------------------------------------
+  // Plot Scatterplot Point
+  //------------------------------------------
   function plot(p) {
     var cell = d3.select(this);
 
@@ -231,7 +238,11 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
         });
   }
 
+  //------------------------------------------
+  // Plot Histogram
+  //------------------------------------------
   function plotHistogram(p) {
+
     var cell = d3.select(this);
 
     x.domain(domainByTrait[p.x]);
@@ -249,6 +260,25 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
     var histData = data.map(function(d) {
       return +d[p.x] ;
     });
+
+    // Filter data down based on selections
+    histData.filter(function(d) {
+      
+      // Has the fuel category been hidden?
+      if (~categoryState[d.fuel]) {
+          return false ;
+      }
+
+      // Is the point within the bounds of the selected region
+      /////// NOTE: may need to reverse the the equalities on these
+      if (~(filterType == "none")) {
+         if (filterLimits[0][0] > +d[filterType[0]] || +d[filterType[0]] > filterLimits[0][1] ||
+            filterLimits[1][0] > +d[filterType[0]] || +d[filterType[0]] > filterLimits[1][1]) {
+          return false ;
+         }
+      }
+      return true ;
+    }) ;
 
     // Generate a histogram using twenty uniformly-spaced bins.
     var hist = d3.layout.histogram()
@@ -276,7 +306,9 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
     });
   }
 
+  //------------------------------------------
   // Update Histograms
+  //------------------------------------------
   function updateHistograms() {
     d3.selectAll(".histogram")
       .remove() ;
@@ -287,6 +319,9 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
 
   var brushCell;
 
+  //------------------------------------------
+  // Brushstart
+  //------------------------------------------
   // Clear the previously-active brush, if any.
   function brushstart(p) {
     if (brushCell !== this) {
@@ -295,26 +330,45 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       y.domain(domainByTrait[p.y]);
       brushCell = this;
     }
+
+    // Reset histogram parameters
+    filterType = ["none","none"] ;
+    filterLimits = [[0,0],[0,0]] ;
+    updateHistograms() ;
   }
 
+  //------------------------------------------
+  // Brushmove
+  //------------------------------------------
   // Highlight the selected circles.
   function brushmove(p) {
     var e = brush.extent();
     svg.selectAll("circle.data").classed("hidden", function(d) {
 
-      // INSERT SUBSELECTION CODE FOR HISTOGRAM HERE
+      // // INSERT SUBSELECTION CODE FOR HISTOGRAM HERE
+      // filterType = [p.x,p.y] ;
+      // filterLimits = [ [+e[0][0],+e[1][0]],
+      //                  [+e[0][1],+e[1][1]]
+      //                ] ;
 
       return +e[0][0] > +d[p.x] || +d[p.x] > +e[1][0] ||
              +e[0][1] > +d[p.y] || +d[p.y] > +e[1][1];
 
     });
+    updateHistograms() ;
   }
 
+  //------------------------------------------
+  // Brushend
+  //------------------------------------------
   // If the brush is empty, select all circles.
   function brushend() {
     if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
   }
 
+  //------------------------------------------
+  // Cross
+  //------------------------------------------
   function cross(a, b) {
     var c = [], n = a.length, m = b.length, i, j;
     for (i = -1; ++i < n;)
@@ -325,7 +379,9 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
 
   d3.select(self.frameElement).style("height", size * n + padding + 20 + "px");
 
-  
+//------------------------------------------
+// Switchvisibility
+//------------------------------------------
 // Switch the visibility of generators based on side buttons
 function switchVisibility(d,i) {
   var selection = svg.selectAll("circle.data")
@@ -342,6 +398,8 @@ function switchVisibility(d,i) {
       })
       .attr("isVisible",false) ;
 
+      // Remove the data from consideration in histograms
+      categoryState[categories[i]] = false ;
   } else {
     selection.attr("visibility","visible") ;
 
@@ -351,15 +409,10 @@ function switchVisibility(d,i) {
         return d3Colors(categoryColors[i]) ;
     })
     .attr("isVisible",true ) ;
+
+    // Add the data to histograms
+      categoryState[categories[i]] = true ;
   }
+  updateHistograms();
 }
 });
-
-  // Update Histograms
-  function updateHistograms() {
-    d3.selectAll(".histogram")
-      .remove() ;
-    // cell.filter(function(d) { return d.i === d.j; })
-    //     .attr("transform", function(d) { return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")"; })
-    //     .each(plotHistogram) ;
-  }
