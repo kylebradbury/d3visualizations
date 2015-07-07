@@ -70,13 +70,15 @@ var radius = 15 ;
 var filterType = ["none","none"] ;
 var filterLimits = [[0,0],[0,0]] ;
 
-// Plot the data 
+//----------------------------------------
+// Load and plot the data 
+//----------------------------------------
 d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   if (error) throw error;
   var allData = data ;
   data = data.filter(function(d){
     //if (d.generation >= 296256) { // Limit data to 95% of generation
-    if (d.generation >= 296256) { // Limit data to 95% of generation
+    if (d.generation >= 4*296256) { // Limit data to 95% of generation
       return true ;
     } else {
       return false ;
@@ -188,23 +190,24 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       .enter().append("g")
       .attr("class", "cell") ;
 
-  cell.filter(function(d) { return d.i !== d.j; })
+  var plotCells = cell.filter(function(d) { return d.i !== d.j; })
       .attr("transform", function(d) { return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")"; })
       .each(plot);
 
-  cell.filter(function(d) { return d.i === d.j; })
+  var histCells = cell.filter(function(d) { return d.i === d.j; })
       .attr("transform", function(d) { return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")"; })
-      .each(plotHistogram) ;
+      .each(firstPlotHistogram) ;
 
   // Titles for the diagonal.
-  cell.filter(function(d) { return d.i === d.j; }).append("text")
+  //cell.filter(function(d) { return d.i === d.j; }).
+  histCells.append("text")
       .attr("x", padding)
       .attr("y", padding)
       .attr("dy", ".71em")
       .text(function(d) { return d.x; });
 
   // Run the brush
-  cell.call(brush);
+  plotCells.call(brush);
 
   //------------------------------------------
   // Plot Scatterplot Point
@@ -241,7 +244,73 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   //------------------------------------------
   // Plot Histogram
   //------------------------------------------
-  function plotHistogram(p) {
+  function updateHistograms() {
+    d3.selectAll(".histogram")
+      .remove() ;
+
+    histCells.each(function(p) {
+
+      var cell = d3.select(this);
+
+      /////////////////// THE SHARED x and y scale is causing the problem!!
+      //x.domain(domainByTrait[p.x]);
+      //y.domain(domainByTrait[p.y]);
+
+      // Filter data down based on selections
+      var histData = data.filter(function(d) {
+        
+        // Has the fuel category been hidden?
+        if (!categoryState[d.fuel]) {
+            return false ;
+        }
+
+        // Is the point within the bounds of the selected region
+        if (!(filterType[0] == "none")) {
+           if (filterLimits[0][0] <= +d[filterType[0]] && +d[filterType[0]] <= filterLimits[0][1] &&
+               filterLimits[1][0] <= +d[filterType[0]] && +d[filterType[0]] <= filterLimits[1][1]) {
+            return false ;
+           }
+        }
+        return true ;
+      }) ;
+
+      // Extract data for histogramming into single array
+      histData = histData.map(function(d) {
+        return +d[p.x] ;
+      });
+
+      // Generate a histogram using twenty uniformly-spaced bins.
+      var hist = d3.layout.histogram()
+        .bins(x.ticks(20))
+        (histData);
+
+      var histScale = d3.scale.linear()
+      .domain([0, d3.max(hist, function(d) { return d.y; })])
+      .range([size - padding / 2, padding / 2]);
+
+      var bar = cell.selectAll(".bar")
+        .data(hist)
+        .enter().append("g")
+        .attr("class", "bar")
+        .classed("histogram",true)
+        .attr("transform", function(d) {
+          return "translate(" + x(d.x) + "," + histScale(d.y) + ")";
+        });
+
+      bar.append("rect")
+      .classed("histogram",true)
+      .attr("x", 1)
+      .attr("width", 5) //x(hist[0].dx) )
+      .attr("height", function(d) {
+        return size - padding / 2 - histScale(d.y);
+      });
+    }) ;
+  }
+
+  //------------------------------------------
+  // First Plot Histogram
+  //------------------------------------------
+  function firstPlotHistogram(p) {
 
     var cell = d3.select(this);
 
@@ -257,28 +326,9 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
         .attr("stroke","#aaa");
 
     // Extract data for histogramming into single array
-    var histData = data.map(function(d) {
+    histData = data.map(function(d) {
       return +d[p.x] ;
     });
-
-    // Filter data down based on selections
-    histData.filter(function(d) {
-      
-      // Has the fuel category been hidden?
-      if (~categoryState[d.fuel]) {
-          return false ;
-      }
-
-      // Is the point within the bounds of the selected region
-      /////// NOTE: may need to reverse the the equalities on these
-      if (~(filterType == "none")) {
-         if (filterLimits[0][0] > +d[filterType[0]] || +d[filterType[0]] > filterLimits[0][1] ||
-            filterLimits[1][0] > +d[filterType[0]] || +d[filterType[0]] > filterLimits[1][1]) {
-          return false ;
-         }
-      }
-      return true ;
-    }) ;
 
     // Generate a histogram using twenty uniformly-spaced bins.
     var hist = d3.layout.histogram()
@@ -299,22 +349,12 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       });
 
     bar.append("rect")
+    .classed("histogram",true)
     .attr("x", 1)
     .attr("width", 5) //x(hist[0].dx) )
     .attr("height", function(d) {
       return size - padding / 2 - histScale(d.y);
     });
-  }
-
-  //------------------------------------------
-  // Update Histograms
-  //------------------------------------------
-  function updateHistograms() {
-    d3.selectAll(".histogram")
-      .remove() ;
-    cell.filter(function(d) { return d.i === d.j; })
-        .attr("transform", function(d) { return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")"; })
-        .each(plotHistogram) ;
   }
 
   var brushCell;
@@ -334,7 +374,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
     // Reset histogram parameters
     filterType = ["none","none"] ;
     filterLimits = [[0,0],[0,0]] ;
-    updateHistograms() ;
+    //updateHistograms() ;
   }
 
   //------------------------------------------
@@ -345,11 +385,11 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
     var e = brush.extent();
     svg.selectAll("circle.data").classed("hidden", function(d) {
 
-      // // INSERT SUBSELECTION CODE FOR HISTOGRAM HERE
-      // filterType = [p.x,p.y] ;
-      // filterLimits = [ [+e[0][0],+e[1][0]],
-      //                  [+e[0][1],+e[1][1]]
-      //                ] ;
+      // INSERT SUBSELECTION CODE FOR HISTOGRAM HERE
+      filterType = [p.x,p.y] ;
+      filterLimits = [ [+e[0][0],+e[1][0]],
+                       [+e[0][1],+e[1][1]]
+                     ] ;
 
       return +e[0][0] > +d[p.x] || +d[p.x] > +e[1][0] ||
              +e[0][1] > +d[p.y] || +d[p.y] > +e[1][1];
@@ -364,6 +404,10 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   // If the brush is empty, select all circles.
   function brushend() {
     if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
+
+    // Reset histogram parameters
+    filterType = ["none","none"] ;
+    filterLimits = [[0,0],[0,0]] ;
   }
 
   //------------------------------------------
