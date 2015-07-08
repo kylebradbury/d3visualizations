@@ -8,6 +8,12 @@ var x = d3.scale.linear()
 var y = d3.scale.linear()
     .range([size - padding / 2, padding / 2]);
 
+var histX = d3.scale.linear()
+    .range([padding / 2, size - padding / 2]);
+
+var histY = d3.scale.linear()
+    .range([size - padding / 2, padding / 2]);
+
 var formatSiPrefix = d3.format("3,.1s") ;
 
 var xAxis = d3.svg.axis()
@@ -78,7 +84,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   var allData = data ;
   data = data.filter(function(d){
     //if (d.generation >= 296256) { // Limit data to 95% of generation
-    if (d.generation >= 4*296256) { // Limit data to 95% of generation
+    if (d.generation >= 1*296256) { // Limit data to 95% of generation
       return true ;
     } else {
       return false ;
@@ -88,7 +94,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   // Determine the types of each plot by extracting the first line of the csv and ignoring
   //  "species"
   var domainByTrait = {},
-      traits = d3.keys(data[0]).filter(function(d) { return d !== "fuel"; }),
+      traits = d3.keys(data[0]).filter(function(d) { return (d !== "fuel" && d!=="age"); }),
       n = traits.length;
 
   // Get Min and Max of each of the columns
@@ -215,8 +221,8 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   function plot(p) {
     var cell = d3.select(this);
 
-    x.domain(domainByTrait[p.x]);
-    y.domain(domainByTrait[p.y]);
+    histX.domain(domainByTrait[p.x]);
+    histY.domain(domainByTrait[p.y]);
 
     cell.append("rect")
         .attr("class", "frame")
@@ -232,9 +238,9 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
         .attr("cx", function(d) {
           // For each data point, return the appropriate x and 
           //  y value corresponding to the pair of data, and scale it
-          return x(d[p.x]);
+          return histX(d[p.x]);
         })
-        .attr("cy", function(d) { return y(d[p.y]); })
+        .attr("cy", function(d) { return histY(d[p.y]); })
         .attr("r", 2)
         .style("fill", function(d) {
           return d3Colors(categoryColorIndex[d.fuel]);
@@ -242,7 +248,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   }
 
   //------------------------------------------
-  // Plot Histogram
+  // Update Histogram
   //------------------------------------------
   function updateHistograms() {
     d3.selectAll(".histogram")
@@ -252,8 +258,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
 
       var cell = d3.select(this);
 
-      /////////////////// THE SHARED x and y scale is causing the problem!!
-      //x.domain(domainByTrait[p.x]);
+      histX.domain(domainByTrait[p.x]);
       //y.domain(domainByTrait[p.y]);
 
       // Filter data down based on selections
@@ -262,12 +267,10 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
         // Has the fuel category been hidden?
         if (!categoryState[d.fuel]) {
             return false ;
-        }
-
-        // Is the point within the bounds of the selected region
-        if (!(filterType[0] == "none")) {
-           if (filterLimits[0][0] <= +d[filterType[0]] && +d[filterType[0]] <= filterLimits[0][1] &&
-               filterLimits[1][0] <= +d[filterType[0]] && +d[filterType[0]] <= filterLimits[1][1]) {
+        // Is a filter applied and is the point within the bounds of the selected region
+        } else if (filterType[0] !== "none") {
+           if (filterLimits[0][0] > +d[filterType[0]] || +d[filterType[0]] > filterLimits[0][1] ||
+               filterLimits[1][0] > +d[filterType[1]] || +d[filterType[1]] > filterLimits[1][1]) {
             return false ;
            }
         }
@@ -281,7 +284,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
 
       // Generate a histogram using twenty uniformly-spaced bins.
       var hist = d3.layout.histogram()
-        .bins(x.ticks(20))
+        .bins(histX.ticks(20))
         (histData);
 
       var histScale = d3.scale.linear()
@@ -294,7 +297,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
         .attr("class", "bar")
         .classed("histogram",true)
         .attr("transform", function(d) {
-          return "translate(" + x(d.x) + "," + histScale(d.y) + ")";
+          return "translate(" + histX(d.x) + "," + histScale(d.y) + ")";
         });
 
       bar.append("rect")
@@ -314,8 +317,8 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
 
     var cell = d3.select(this);
 
-    x.domain(domainByTrait[p.x]);
-    y.domain(domainByTrait[p.y]);
+    histX.domain(domainByTrait[p.x]);
+    histY.domain(domainByTrait[p.y]);
 
     cell.append("rect")
         .attr("x", padding / 2)
@@ -332,7 +335,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
 
     // Generate a histogram using twenty uniformly-spaced bins.
     var hist = d3.layout.histogram()
-      .bins(x.ticks(20))
+      .bins(histX.ticks(20))
       (histData);
 
     var histScale = d3.scale.linear()
@@ -345,7 +348,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       .attr("class", "bar")
       .classed("histogram",true)
       .attr("transform", function(d) {
-        return "translate(" + x(d.x) + "," + histScale(d.y) + ")";
+        return "translate(" + histX(d.x) + "," + histScale(d.y) + ")";
       });
 
     bar.append("rect")
@@ -369,12 +372,14 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       x.domain(domainByTrait[p.x]);
       y.domain(domainByTrait[p.y]);
       brushCell = this;
+      console.log("clear");
     }
 
     // Reset histogram parameters
-    filterType = ["none","none"] ;
-    filterLimits = [[0,0],[0,0]] ;
+    //filterType = ["none","none"] ;
+    //filterLimits = [[0,0],[0,0]] ;
     //updateHistograms() ;
+    //console.log("start");
   }
 
   //------------------------------------------
@@ -383,14 +388,18 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   // Highlight the selected circles.
   function brushmove(p) {
     var e = brush.extent();
+
+    // Identify subselections for histograms
+    filterType = [p.x,p.y] ;
+    filterLimits = [ [+e[0][0],+e[1][0]],
+                     [+e[0][1],+e[1][1]]
+                   ] ;
+    if (filterLimits[0][0] == filterLimits[0][1] && filterLimits[1][0] == filterLimits[1][1]) {
+      filterType = ["none","none"] ;
+      updateHistograms() ;
+    }
+
     svg.selectAll("circle.data").classed("hidden", function(d) {
-
-      // INSERT SUBSELECTION CODE FOR HISTOGRAM HERE
-      filterType = [p.x,p.y] ;
-      filterLimits = [ [+e[0][0],+e[1][0]],
-                       [+e[0][1],+e[1][1]]
-                     ] ;
-
       return +e[0][0] > +d[p.x] || +d[p.x] > +e[1][0] ||
              +e[0][1] > +d[p.y] || +d[p.y] > +e[1][1];
 
@@ -404,10 +413,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   // If the brush is empty, select all circles.
   function brushend() {
     if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
-
-    // Reset histogram parameters
-    filterType = ["none","none"] ;
-    filterLimits = [[0,0],[0,0]] ;
+    updateHistograms() ;
   }
 
   //------------------------------------------
