@@ -83,8 +83,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   if (error) throw error;
   var allData = data ;
   data = data.filter(function(d){
-    //if (d.generation >= 296256) { // Limit data to 95% of generation
-    if (d.generation >= 1*296256) { // Limit data to 95% of generation
+    if (d.generation >= 296256) { // Limit data to 95% of generation
       return true ;
     } else {
       return false ;
