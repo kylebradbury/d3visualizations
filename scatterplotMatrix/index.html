@@ -4,11 +4,17 @@
         <meta charset="utf-8">
         <title>D3 Scatterplot Matrix</title>
         <link rel="stylesheet" type="text/css" href="style.css">
-        <script src="./pace.min.js"></script>
+        <link href='http://fonts.googleapis.com/css?family=Lato:100,300,400,700' rel='stylesheet' type='text/css'>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
     </head>
     <body>
+        <h1>Comparison of Electric Power Plant Characteristics</h1>
+        <div id="d3container"></div>
+        <p>Instructions: Click the circles on the left to toggle resources. Selection regions of any scatter plot to select that subset of generators - the histograms will update based on your selection.</p>
+        <p>Author: Kyle Bradbury</p>
+        <p>Data Source: <a href="http://www.epa.gov/cleanenergy/energy-resources/egrid/">EPA eGRID Ninth edition, 2010</a></p>
+
         <script src="scatterplotMatrixHist.js"></script>
     </body>
 </html>

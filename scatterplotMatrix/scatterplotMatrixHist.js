@@ -66,7 +66,13 @@ categoryState = {BIOMASS:true,
                 OTHER:true,
                 SOLAR:true,
                 WIND:true } ;
-
+diagonalNames = {co2emissionsRate: "CO2e Rate [tons/MWh]",
+                 co2emissions: "CO2e [tons]",
+                 capacityfactor: "Capacity Factor",
+                 generation: "Energy [MWh]",
+                 nameplate: "Capacity [MW]",
+                 age: "Age [yrs]"
+                 } ;
 // Legend data buttons
 
 // Legend variables
@@ -116,7 +122,7 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       .on("brushend", brushend);
 
   // Create the svg box
-  var svg = d3.select("body").append("svg")
+  var svg = d3.select("div#d3container").append("svg")
       .attr("width", size * n + padding*5)
       .attr("height", size * n + padding)
       .append("g")
@@ -202,14 +208,6 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
   var histCells = cell.filter(function(d) { return d.i === d.j; })
       .attr("transform", function(d) { return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")"; })
       .each(firstPlotHistogram) ;
-
-  // Titles for the diagonal.
-  //cell.filter(function(d) { return d.i === d.j; }).
-  histCells.append("text")
-      .attr("x", padding)
-      .attr("y", padding)
-      .attr("dy", ".71em")
-      .text(function(d) { return d.x; });
 
   // Run the brush
   plotCells.call(brush);
@@ -306,6 +304,16 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
       .attr("height", function(d) {
         return size - padding / 2 - histScale(d.y);
       });
+
+      // Titles for the diagonal.
+      //cell.filter(function(d) { return d.i === d.j; }).
+      cell.append("text")
+      .classed("histogram",true)
+      .attr("x", size - padding)
+      .attr("y", padding)
+      .attr("dy", ".71em")
+      .attr("text-anchor","end")
+      .text(function(d) { return diagonalNames[d.x]; });
     }) ;
   }
 
@@ -357,6 +365,16 @@ d3.csv("egrid2010_scatterplot.csv", function(error, data) {
     .attr("height", function(d) {
       return size - padding / 2 - histScale(d.y);
     });
+
+    // Titles for the diagonal.
+    //cell.filter(function(d) { return d.i === d.j; }).
+    cell.append("text")
+    .classed("histogram",true)
+    .attr("x", size - padding)
+    .attr("y", padding)
+    .attr("dy", ".71em")
+    .attr("text-anchor","end")
+    .text(function(d) { return diagonalNames[d.x]; });
   }
 
   var brushCell;

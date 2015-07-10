@@ -24,3 +24,47 @@
   font-family: sans-serif;
   -webkit-user-select: none ;
 }
+
+svg {
+  font: 10px sans-serif;
+  padding: 10px;
+  display: block;
+  margin: auto;
+}
+
+
+
+div#d3container{
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+body {
+  overflow-x: hidden;
+  font-family: "Lato", "Open Sans", sans-serif;
+  font-size: 14px;
+  line-height: 1.75;
+  font-weight: 300;
+  text-align: center;
+}
+.text-muted {
+  color: #777777;
+}
+.text-primary {
+  color: #1cbd72;
+}
+p {
+  font-size: 14px;
+  line-height: 1.75;
+  font-weight: 300;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Lato", Helvetica, Arial, sans-serif;
+  text-transform: none;
+  font-weight: 700;
+  margin-bottom: 0 ;
+}

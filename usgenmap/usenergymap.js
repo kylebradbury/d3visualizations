@@ -24,7 +24,7 @@ var circleScale = d3.scale
                     .clamp(true) ;
 
 // SVG Canvas
-var svg = d3.select("body").append("svg")
+var svg = d3.select("div#d3container").append("svg")
     .attr("width", width)
     .attr("height", height);
 

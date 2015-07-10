@@ -4,11 +4,17 @@
         <meta charset="utf-8">
         <title>D3 US Energy Map</title>
         <link rel="stylesheet" type="text/css" href="style.css">
+        <link href='http://fonts.googleapis.com/css?family=Lato:100,300,400,700' rel='stylesheet' type='text/css'>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
     </head>
     <body>
-        <h1 id="title">United States Generation Resource Map, 2010 Data</h1>
+        <h1>U.S. Electricity Generation Resource Map</h1>
+        <div id="d3container"></div>
+        <p>Instructions: Use the buttons on the left to toggle generation types. Click on individual plants to get more information. Double click the map to zoom in, and click the "zoom" button to zoom back out.</p>
+        <p>Author: Kyle Bradbury</p>
+        <p>Data Source: <a href="http://www.epa.gov/cleanenergy/energy-resources/egrid/">EPA eGRID Ninth edition, 2010</a></p>
+        
         <script src="usenergymap.js"></script>
     </body>
 </html>

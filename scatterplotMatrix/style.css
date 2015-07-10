@@ -1,6 +1,8 @@
 svg {
   font: 10px sans-serif;
   padding: 10px;
+  display: block;
+  margin: auto;
 }
 
 .axis,
@@ -35,11 +37,49 @@ circle.hidden {
   stroke: #fff;
 }
 
+.bar {
+  fill: #777;
+}
+
+
+div#d3container{
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+body {
+  overflow-x: hidden;
+  font-family: "Lato", "Open Sans", sans-serif;
+  font-size: 14px;
+  line-height: 1.75;
+  font-weight: 300;
+  text-align: center;
+}
+.text-muted {
+  color: #777777;
+}
+.text-primary {
+  color: #1cbd72;
+}
+p {
+  font-size: 14px;
+  line-height: 1.75;
+  font-weight: 300;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Lato", Helvetica, Arial, sans-serif;
+  text-transform: none;
+  font-weight: 700;
+  margin-bottom: 0 ;
+}
 
 
 
-
-
+/*
 .pace {
   -webkit-pointer-events: none;
   pointer-events: none;
@@ -48,46 +88,36 @@ circle.hidden {
   -moz-user-select: none;
   user-select: none;
 
-  z-index: 2000;
   position: fixed;
-  margin: auto;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  height: 5px;
-  width: 200px;
-  background: #fff;
-  border: 1px solid #29d;
+  width: 100%;
 
-  overflow: hidden;
+  -webkit-transform: translate3d(0, -50px, 0);
+  -ms-transform: translate3d(0, -50px, 0);
+  transform: translate3d(0, -50px, 0);
+
+  -webkit-transition: -webkit-transform .5s ease-out;
+  -ms-transition: -webkit-transform .5s ease-out;
+  transition: transform .5s ease-out;
+}
+
+.pace.pace-active {
+  -webkit-transform: translate3d(0, 0, 0);
+  -ms-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
 }
 
 .pace .pace-progress {
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  -ms-box-sizing: border-box;
-  -o-box-sizing: border-box;
-  box-sizing: border-box;
-
-  -webkit-transform: translate3d(0, 0, 0);
-  -moz-transform: translate3d(0, 0, 0);
-  -ms-transform: translate3d(0, 0, 0);
-  -o-transform: translate3d(0, 0, 0);
-  transform: translate3d(0, 0, 0);
-
-  max-width: 200px;
+  display: block;
   position: fixed;
   z-index: 2000;
-  display: block;
-  position: absolute;
   top: 0;
   right: 100%;
-  height: 100%;
   width: 100%;
+  height: 10px;
   background: #29d;
-}
 
-.pace.pace-inactive {
-  display: none;
+  pointer-events: none;
 }
+*/
