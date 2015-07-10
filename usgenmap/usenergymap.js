@@ -66,14 +66,15 @@ gLegend.status = [true, true, true, true, true, true, true, true, true, true] ;
 infoType = ["capacity", "energy", "emissions", "age"] ;
 infoTypeShort = ["cap", "energy", "co2e", "age"] ;
 
-var tooltipData = [   "Plant Name      = ",
-                      "Capacity        = ",
-                      "Annual Energy   = ",
-                      "Primary Fuel    = ",
+var tooltipLabel = [  "Plant Name = ",
+                      "Capacity = ",
+                      "Annual Energy = ",
+                      "Primary Fuel = ",
                       "Average Gen Age = ",
                       "Capacity Factor = ",
-                      "CO2e Emissions  = "] ;
-generateToolTip(tooltipData) ;
+                      "CO2e Emissions = "] ;
+var tooltipData = ["","","","","","",""];
+generateToolTip(tooltipLabel,tooltipData) ;
 
 // Buttons to select information type
 legendInfoButtons = gLegend.selectAll("circle.infoSwitch")
@@ -266,7 +267,6 @@ d3.json("./us.json", function(error, us) {
       .attr("stroke-width",0)
       .style("opacity", 0.75)
       .on("click",function(d) { // Change circle and add tooltip
-        console.log(d3.select(this).attr("stroke-width"));
         if (d3.select(this).attr("stroke-width") == 0) {
           // Set all circles to no stroke
           g.selectAll("circle")
@@ -408,12 +408,12 @@ function changeDataSource(type, circle) {
 }
 
 //defines a function to be used to append the title to the tooltip.  you can set how you want it to display here.
-function generateToolTip(dTooltip) {
+function generateToolTip(label,data) {
   svg.append("rect")
       .classed("tooltip", true)
       .attr({x: width/2 - 5,
              y: 1 ,
-             width: 280 ,
+             width: 340 ,
              height: 75 ,
              fill: "white",
              stroke: "grey",
@@ -421,16 +421,36 @@ function generateToolTip(dTooltip) {
       })
       .attr("visibility","hidden");
 
-  svg.selectAll("text.tooltip")
-      .data(dTooltip)
+  svg.selectAll("text.tooltip.label")
+      .data(label)
       .enter()
       .append("text")
       .classed("tooltip",true)
+      .classed("label",true)
       .attr({ x:width/2,
               y:function(d,i){return i*10+10;},
               "font-size":10,
-              "font-family":"Monaco",
-              "text-anchor":"left",
+              "font-family":"Verdana",
+              "text-anchor":"end",
+              fill:"grey",
+              "alignment-baseline":"middle",
+              "xml:space": "preserve"})
+      .style('pointer-events', 'none')
+      .style("-webkit-user-select", "none") // This must be expanded to prevent selections in other browsers
+      .text(function(d){return d;})
+      .attr("visibility","hidden" ) ;
+
+      svg.selectAll("text.tooltip.data")
+      .data(data)
+      .enter()
+      .append("text")
+      .classed("tooltip",true)
+      .classed("data",true)
+      .attr({ x:width/2,
+              y:function(d,i){return i*10+10;},
+              "font-size":10,
+              "font-family":"Verdana",
+              "text-anchor":"start",
               fill:"grey",
               "alignment-baseline":"middle",
               "xml:space": "preserve"})
@@ -445,29 +465,52 @@ var cfFormat  = d3.format(".3f");
 
 function updateAndShowToolTip (dTooltip) {
 
-  // Update and show tooltip
-  var cData = [ "Plant Name      = " + dTooltip.name,
-                "Capacity        = " + numformat(dTooltip.nameplate) + " MW",
-                "Annual Energy   = " + numformat(dTooltip.generation/1000) + " GWh",
-                "Primary Fuel    = " + dTooltip.fuel,
-                "Average Gen Age = " + dTooltip.age + " years",
-                "Capacity Factor = " + cfFormat(dTooltip.capacityfactor),
-                "CO2e Emissions  = " + numformat(dTooltip.co2emissions/1000) + " thousand tons CO2e"] ;
+  // Update tooltip data
+  var cData = [ dTooltip.name,
+                numformat(dTooltip.nameplate) + " MW",
+                numformat(dTooltip.generation/1000) + " GWh",
+                dTooltip.fuel,
+                dTooltip.age + " years",
+                cfFormat(dTooltip.capacityfactor),
+                numformat(dTooltip.co2emissions/1000) + " thousand tons CO2e"] ;
 
-  svg.selectAll("rect.tooltip")
-      .attr("visibility","visible" );
-
-  svg.selectAll("text.tooltip")
+  svg.selectAll("text.tooltip.data")
       .data(cData)
       .text(function(d,i){
-        return cData[i];})
-      .attr("visibility","visible" ) ;
+        return cData[i];}) ;
+
+  // Get the extent of each of the text bounding boxes
+  var extent = [null] ;
+  d3.selectAll("text.tooltip")
+    .each(function() {
+      var textExtent = this.getBBox() ;
+      var xmin = textExtent.x,
+          ymin = textExtent.y,
+          xmax = xmin + textExtent.width,
+          ymax = ymin + textExtent.height ;
+      if (extent[0] === null) {
+        extent = [xmin, xmax, ymin, ymax] ;
+      } else {
+        extent[0] = Math.min(xmin,extent[0]) ;
+        extent[1] = Math.max(xmax,extent[1]) ;
+        extent[2] = Math.min(ymin,extent[2]) ;
+        extent[3] = Math.max(ymax,extent[3]) ;
+      }
+    });
+
+    var buffer = 3 ;
+    d3.select("rect.tooltip")
+      .attr("x", extent[0] - buffer)
+      .attr("y", extent[2] - buffer)
+      .attr("width", extent[1] - extent[0] + buffer*2)
+      .attr("height", extent[3] - extent[2] + buffer*2);
+
+  // Show tooltip
+  svg.selectAll(".tooltip")
+      .attr("visibility","visible" );
 }
 
 function hideToolTip(dTooltip) {
-  svg.selectAll("rect.tooltip")
+  svg.selectAll(".tooltip")
       .attr("visibility","hidden" );
-
-  svg.selectAll("text.tooltip")
-      .attr("visibility","hidden" ) ;
 }
